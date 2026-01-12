@@ -1,0 +1,6 @@
+timeseries_etl:
+  target: dev
+  outputs:
+    dev:
+      type: duckdb
+      path: C:/Users/m.zortea/Documents/timeseries_etl/duckdb/mydb.duckdb

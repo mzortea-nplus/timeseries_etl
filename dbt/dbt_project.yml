@@ -1,0 +1,14 @@
+
+name: timeseries_etl
+version: "1.0"
+profile: timeseries_etl
+
+model-paths: ["models"]
+models:
+  timeseries_etl:
+    staging:
+      materialized: view
+    marts:
+      materialized: table
+    serving:
+      materialized: table
