@@ -3,4 +3,4 @@ timeseries_etl:
   outputs:
     dev:
       type: duckdb
-      path: C:/Users/m.zortea/Documents/timeseries_etl/duckdb/mydb.duckdb
+      path: "ETL.duckdb"

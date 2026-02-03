@@ -1,0 +1,12 @@
+*.parquet
+*.pyc
+*.duckdb
+*.tmp
+*.log
+dbt/target/*
+*.png
+*.pkl
+*.csv
+processing/*
+*.docx
+.vscode

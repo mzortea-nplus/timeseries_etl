@@ -1,14 +1,45 @@
+name: sensor_pipeline
+version: "1.0.0"
+config-version: 2
 
-name: timeseries_etl
-version: "1.0"
 profile: timeseries_etl
 
-model-paths: ["models"]
+model-paths:
+  - models
+
+analysis-paths:
+  - analysis
+
+test-paths:
+  - tests
+
+seed-paths:
+  - seeds
+
+macro-paths:
+  - macros
+
+snapshot-paths:
+  - snapshots
+
+target-path: target
+clean-targets:
+  - target
+  - dbt_packages
+
 models:
-  timeseries_etl:
+  sensor_pipeline:
+    +materialized: table
+
     staging:
-      materialized: view
+      +schema: staging
+      +materialized: table
+
     marts:
-      materialized: table
-    serving:
-      materialized: table
+      +schema: staging
+      +materialized: table
+
+vars:
+  data_folder: C:\Users\m.zortea\Desktop\sommacampagna
+  start_date: "2025-03-01"
+  end_date: "2026-03-01"
