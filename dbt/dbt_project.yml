@@ -40,6 +40,6 @@ models:
       +materialized: table
 
 vars:
-  data_folder: C:\Users\m.zortea\Desktop\sommacampagna
+  data_folder: C:\Users\m.zortea\Desktop\gua
   start_date: "2025-03-01"
   end_date: "2026-03-01"

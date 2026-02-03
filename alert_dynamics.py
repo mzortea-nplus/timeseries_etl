@@ -22,8 +22,15 @@ for col in df.columns:
         })
 
         plt.plot(df['time'], df[col])
-        plt.hlines([3, 3], min(df['time']), max(df['time']), linestyle='--')
-        plt.hlines([-3, -3], min(df['time']), max(df['time']), linestyle='--')
+        plt.hlines([3, 3], min(df['time']), max(df['time']), linestyle='--', color='red')
+        plt.hlines([-3, -3], min(df['time']), max(df['time']), linestyle='--', color='red')
+        plt.ylim([-6, +6])
+        plt.title(f"Sensor {col}")
+        plt.xlabel("Time")
+        plt.ylabel("Value")
+        plt.xticks(rotation=30)
+        plt.grid()
+        plt.tight_layout()
         plt.savefig(f'figures/sensor_{col}.png')
         plt.close()
 
