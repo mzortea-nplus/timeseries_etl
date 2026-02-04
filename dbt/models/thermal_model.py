@@ -15,13 +15,23 @@ def model(dbt, session):
         FROM main_staging.all_static
     ''').df()
 
-    print(df.head())
+    nan_value = float("NaN")
+    df.replace("", nan_value, inplace=True)
+    df.dropna(how='all', axis=1, inplace=True)
+    df = df.interpolate(method='linear', axis=0)
+
+    #df.fillna(df.mean(), inplace=True)
+
+    #print(df.isna())
     
     temp_sensors = [c for c in df.columns if c.endswith('_t')]
     sensors = [c for c in df.columns if c != 'time' and c not in temp_sensors]
 
-    df = df.interpolate(method='linear', axis=0)
-    X = df[temp_sensors].to_numpy()
+    if len(temp_sensors) == 0:
+        print("!!! Warning: no temperature sensors found. Skipping thermal compensation !!!")
+        return df[['time'] + sensors]
+
+    X = df[temp_sensors].to_numpy().reshape(df.shape[0], -1)
     residuals_df = pd.DataFrame({'time': df['time']})
     for s in sensors:
 
