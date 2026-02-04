@@ -30,7 +30,7 @@ for col in df.columns:
         #y_in[out_range] = np.nan
         y_out[in_range] = np.nan
 
-        plt.plot(t, y_in, '-', color='black', alpha=0.6, linewidth=0.8)
+        plt.plot(t, y_in, '-', color='black', alpha=0.5, linewidth=0.8)
         plt.plot(t, y_out, 'r.-', markersize=4)
         plt.fill_between([min(t), max(t)], -3, +3, color='skyblue', alpha=0.65)
         plt.hlines([-3, -3], min(t), max(t), color='blue', linestyle='--')
