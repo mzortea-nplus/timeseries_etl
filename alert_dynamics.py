@@ -32,6 +32,7 @@ for col in df.columns:
         plt.grid()
         plt.tight_layout()
         plt.savefig(f'figures/sensor_{col}.png')
+        
         plt.close()
 
 pd.DataFrame(warnings).to_csv("outputs/summary_table.csv", index=False)
