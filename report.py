@@ -2,9 +2,43 @@ from docx import Document
 from docx.shared import Inches, Cm
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
 from docx.enum.table import WD_TABLE_ALIGNMENT
+from datetime import datetime
 import pandas as pd
 import json
 import os
+
+
+def append_docx(master: Document, doc_to_append: Document):
+    """
+    Appende il contenuto di doc_to_append alla fine di master
+    """
+    for element in doc_to_append.element.body:
+        master.element.body.append(element)
+
+
+def replace_placeholders(doc, replacements: dict):
+    """
+    Sostituisce {{PLACEHOLDER}} nel documento (body + header + footer)
+    """
+    def replace_in_paragraphs(paragraphs):
+        for p in paragraphs:
+            for key, value in replacements.items():
+                if key in p.text:
+                    inline = p.runs
+                    for run in inline:
+                        for k, v in replacements.items():
+                            if k in run.text:
+                                run.text = run.text.replace(k, v)
+
+    # Corpo documento
+    replace_in_paragraphs(doc.paragraphs)
+
+    # Header e footer
+    for section in doc.sections:
+        replace_in_paragraphs(section.header.paragraphs)
+        replace_in_paragraphs(section.footer.paragraphs)
+
+
 # --------------------------------------------------
 # Load analysis outputs
 # --------------------------------------------------
@@ -15,7 +49,17 @@ metrics_df = pd.read_csv("outputs/model_metrics.csv")
 # --------------------------------------------------
 # Create document
 # --------------------------------------------------
-doc = Document()
+replacements = {
+    "{{data}}": datetime.today().strftime("%d/%m/%y"),
+    "{{MESE_ANNO}}": "GENNAIO 2026",
+    "{{OPERA}}": "P005 - PONTE ADIGE EST",
+    "{{Comune}}": "VERONA (VR)"
+}
+
+doc = Document("templates/A4_P005_Adige_Ovest_Copertina.docx")
+replace_placeholders(doc, replacements)
+
+doc.add_page_break()
 
 # Title page
 title = doc.add_heading("Monthly Structural Monitoring Report", 0)
@@ -45,9 +89,9 @@ doc.add_heading("2. Summary Statistics", level=1)
 
 table = doc.add_table(
     rows=1,
-    cols=len(summary_df.columns),
-    style="Table Grid"
+    cols=len(summary_df.columns)
 )
+
 table.alignment = WD_TABLE_ALIGNMENT.CENTER
 
 hdr_cells = table.rows[0].cells
@@ -88,8 +132,7 @@ doc.add_heading("4. Model Performance", level=1)
 
 table = doc.add_table(
     rows=1,
-    cols=len(metrics_df.columns),
-    style="Light Shading"
+    cols=len(metrics_df.columns)
 )
 
 hdr_cells = table.rows[0].cells
@@ -104,4 +147,5 @@ for _, row in metrics_df.iterrows():
 # --------------------------------------------------
 # Save
 # --------------------------------------------------
-doc.save("monthly_report.docx")
+output_path = os.path.join("outputs", "monthly_report.docx")
+doc.save(output_path)

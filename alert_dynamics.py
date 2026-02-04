@@ -6,7 +6,7 @@ import os
 
 os.makedirs("figures", exist_ok=True)
 
-conn = duckdb.connect('dbt/dev.duckdb')
+conn = duckdb.connect('dbt/etl.duckdb')
 
 df = conn.sql("""
     SELECT * from control

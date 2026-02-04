@@ -40,6 +40,6 @@ models:
       +materialized: table
 
 vars:
-  data_folder: C:\Users\m.zortea\Desktop\gua
+  data_folder: C:\Users\matte\Desktop\NPlus\01.Commesse\Soglie_A4\data\Adige_Ovest
   start_date: "2025-03-01"
   end_date: "2026-03-01"
