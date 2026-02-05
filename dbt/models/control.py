@@ -12,11 +12,16 @@ def z_score(series):
 def model(dbt, session):
 
     dbt.config(materialized='table')
-    control_df = session.sql('''
-        SELECT *
-        FROM thermal_model
-    ''').df()
-
+    try:
+        control_df = session.sql('''
+            SELECT *
+            FROM thermal_model
+        ''').df()
+    except:
+        control_df = session.sql('''
+            SELECT *
+            FROM main_staging.after_sindy
+        ''').df()
     sensors = [c for c in control_df.columns if c != 'time']
 
     zscore_df = control_df.copy()

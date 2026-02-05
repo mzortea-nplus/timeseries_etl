@@ -7,7 +7,7 @@ from datetime import date, timedelta
 
 os.makedirs("figures", exist_ok=True)
 
-conn = duckdb.connect('dbt/etl.duckdb')
+conn = duckdb.connect('data/Sommacampagna.duckdb')
 
 df = conn.sql("""
     SELECT * from control
@@ -32,7 +32,7 @@ for col in df.columns:
 
         plt.plot(t, y_in, '-', color='black', alpha=0.5, linewidth=0.8)
         plt.plot(t, y_out, 'r.-', markersize=4)
-        plt.fill_between([min(t), max(t)], -3, +3, color='skyblue', alpha=0.65)
+        plt.fill_between([min(t), max(t)], -3, +3, color='skyblue', alpha=0.35)
         plt.hlines([-3, -3], min(t), max(t), color='blue', linestyle='--')
         plt.hlines([+3, +3], min(t), max(t), color='blue', linestyle='--')
         plt.text(0.5, 0.125, 'Lower Control Limit', horizontalalignment='center',

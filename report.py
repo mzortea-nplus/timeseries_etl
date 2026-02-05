@@ -56,7 +56,7 @@ replacements = {
     "{{Comune}}": "VERONA (VR)"
 }
 
-doc = Document("templates/A4_P005_Adige_Ovest_Copertina.docx")
+doc = Document(r"C:\Users\m.zortea\OneDrive - NPlus\MTMZ\templates/A4_P005_Adige_Ovest_Copertina.docx")
 replace_placeholders(doc, replacements)
 
 doc.add_page_break()

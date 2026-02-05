@@ -1,0 +1,14 @@
+mode: prediction
+
+data:
+  db: "data/Sommacampagna.duckdb"
+  start_date: "2025-01-01"
+  end_date: "2027-01-01"
+
+sindy:
+  fourier: [365, 128, 1, 0.5, 7, 5]
+
+out:
+  model: "saved_models/Sommacampagna.pkl"
+  metrics: "outputs/model_metrics.csv"
+  residuals: "data/residuals/Sommacampagna.parquet"
