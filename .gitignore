@@ -10,3 +10,5 @@ dbt/target/*
 processing/*
 *.docx
 .vscode
+eda.ipynb
+mlflow.db
