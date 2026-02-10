@@ -6,9 +6,10 @@ data:
   end_date: "2027-01-01"
 
 sindy:
-  fourier: [365, 128, 1, 0.5, 7, 5]
+  fourier: [365, 7, 1, 0.5]
+  regressor: LinReg
 
 out:
-  model: "saved_models/Sommacampagna.pkl"
+  model: "saved_models/Sommacampagna"
   metrics: "outputs/model_metrics.csv"
   residuals: "data/residuals/Sommacampagna.parquet"

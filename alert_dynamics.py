@@ -4,14 +4,18 @@ import duckdb
 import os 
 from matplotlib import pyplot as plt
 from datetime import date, timedelta
+import sys
+
+my_date = sys.argv[1]
+year, month = my_date.split('-')
 
 os.makedirs("figures", exist_ok=True)
 
 conn = duckdb.connect('data/Sommacampagna.duckdb')
 
-df = conn.sql("""
+df = conn.sql(f"""
     SELECT * from control
-    where date_trunc('month', time) between '2025-10-1' and '2025-10-31'
+    where date_trunc('month', time) = make_date({year}, {month})
 """).df()
 
 warnings = []
