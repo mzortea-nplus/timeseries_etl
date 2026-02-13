@@ -175,6 +175,14 @@ for opera_key, opera_info in opere.items():
         summary_df = pd.read_csv(os.path.join(base_out, "summary_table.csv"))
         metrics_df = pd.read_csv(os.path.join(base_out, "model_metrics.csv"))
 
+
+        ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        # if filename.endswith("_x") or filename.endswith('_y'):
+        #     sens_type = 'inclinometer'
+        # elif filename.endswith("t"):
+        ## %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
         figures = []
         if os.path.isdir(fig_dir):
             figures = sorted([
