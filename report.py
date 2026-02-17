@@ -20,6 +20,7 @@ def replace_placeholders(doc, replacements: dict):
     """
     Sostituisce {{PLACEHOLDER}} nel documento (body + header + footer)
     """
+
     def replace_in_paragraphs(paragraphs):
         for p in paragraphs:
             for key, value in replacements.items():
@@ -49,14 +50,17 @@ metrics_df = pd.read_csv("outputs/model_metrics.csv")
 # --------------------------------------------------
 # Create document
 # --------------------------------------------------
+
 replacements = {
     "{{data}}": datetime.today().strftime("%d/%m/%y"),
     "{{MESE_ANNO}}": "GENNAIO 2026",
     "{{OPERA}}": "P005 - PONTE ADIGE EST",
-    "{{Comune}}": "VERONA (VR)"
+    "{{Comune}}": "VERONA (VR)",
 }
 
-doc = Document(r"C:\Users\m.zortea\OneDrive - NPlus\MTMZ\templates/A4_P005_Adige_Ovest_Copertina.docx")
+doc = Document(
+    r"C:\Users\m.zortea\OneDrive - NPlus\MTMZ\templates/A4_P005_Adige_Ovest_Copertina.docx"
+)
 replace_placeholders(doc, replacements)
 
 doc.add_page_break()
@@ -87,10 +91,7 @@ doc.add_page_break()
 # --------------------------------------------------
 doc.add_heading("2. Summary Statistics", level=1)
 
-table = doc.add_table(
-    rows=1,
-    cols=len(summary_df.columns)
-)
+table = doc.add_table(rows=1, cols=len(summary_df.columns))
 
 table.alignment = WD_TABLE_ALIGNMENT.CENTER
 
@@ -111,17 +112,18 @@ doc.add_page_break()
 doc.add_heading("3. Visual Analysis", level=1)
 
 paragraph = doc.add_paragraph("Long-term trend analysis:")
-table = doc.add_table(
-    rows=1,
-    cols=2
-)
+table = doc.add_table(rows=1, cols=2)
 
-figures = os.listdir('figures')
+figures = os.listdir("figures")
 for i in range(0, len(figures), 2):
     row_cells = table.add_row().cells
-    row_cells[0].paragraphs[0].add_run().add_picture(os.path.join('figures', figures[i]), width=Cm(7))
-    if i < len(figures) - 1: 
-        row_cells[1].paragraphs[0].add_run().add_picture(os.path.join('figures', figures[i+1]), width=Cm(7))
+    row_cells[0].paragraphs[0].add_run().add_picture(
+        os.path.join("figures", figures[i]), width=Cm(7)
+    )
+    if i < len(figures) - 1:
+        row_cells[1].paragraphs[0].add_run().add_picture(
+            os.path.join("figures", figures[i + 1]), width=Cm(7)
+        )
 
 doc.add_page_break()
 
@@ -130,10 +132,7 @@ doc.add_page_break()
 # --------------------------------------------------
 doc.add_heading("4. Model Performance", level=1)
 
-table = doc.add_table(
-    rows=1,
-    cols=len(metrics_df.columns)
-)
+table = doc.add_table(rows=1, cols=len(metrics_df.columns))
 
 hdr_cells = table.rows[0].cells
 for i, col in enumerate(metrics_df.columns):

@@ -26,7 +26,7 @@ if __name__ == "__main__":
         print("Found irregular sampling")
         print(df["time"][mask])
     df = df.loc[~mask]
-    df = df.set_index("time")
+    # df = df.set_index("time")
 
     dt = dts.mode().iloc[0]  # seconds per sample
     season_seconds = 24 * 3600  # example: daily seasonality
@@ -45,7 +45,13 @@ if __name__ == "__main__":
             df[s].to_numpy(),
             period=period,
             seasonal=period * 365 + 1,
-            trend=30 * period + 1,
+            trend=period + 1,
         ).fit()
-        res.plot()
+        plt.plot(df["time"], res.trend, color="black", label="signal trend")
+        plt.gca().twinx()
+        plt.plot(
+            df["time"], df[tmp_sensors].mean(axis=1), "--", label="avg tmp", alpha=0.5
+        )
+        plt.grid()
+        plt.legend()
         plt.show()
