@@ -71,7 +71,7 @@ class EventsController:
         for i in range(len(self.z)):
 
             if alarm_val > 3:
-                print("ALLARMEEEEEEE")
+                print("Alarm!")
                 alarm_val = 0
             else:
                 p = 1 if self.warning(i) else 0
