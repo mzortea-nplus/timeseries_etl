@@ -11,6 +11,7 @@ from docx.shared import Cm
 from docx.shared import Pt
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
+from docxcompose.composer import Composer
 
 
 # --------------------------------------------------
@@ -193,52 +194,50 @@ for opera_key, opera_info in opere.items():
             "{{Comune}}": opera_comune,
         }
 
-        doc = Document(template_path)
+        master = Document(template_path)
         # doc = Document()
         # set_font(doc, "Times New Roman", 12)
-
         # doc.styles['Normal'].font.name = 'Times New Roman'
 
-        replace_placeholders(doc, replacements)
+        replace_placeholders(master, replacements)
 
         # --------------------------------------------------
         # Title page
         # --------------------------------------------------
 
-        doc.add_page_break()
-        title = doc.add_heading("Monthly Structural Monitoring Report", 1)
-        title.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        # title = master.add_heading("Monthly Structural Monitoring Report", 1)
+        # title.alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+        # master.add_paragraph(f"Reporting period: {mese_nome}")
+        # master.add_paragraph("Generated automatically")
+        # master.add_page_break()
 
-        doc.add_paragraph(f"Reporting period: {mese_nome}")
-        doc.add_paragraph("Generated automatically")
-
-        doc.add_page_break()
 
         # --------------------------------------------------
         # Section 1: Executive Summary
         # --------------------------------------------------
 
-        doc.add_heading("1. Executive Summary", level=1)
+        # master.add_heading("1. Executive Summary", level=1)
+        # p = master.add_paragraph()
+        # p.add_run(f"Average displacement: {kpis['avg_displacement']} mm\n")
+        # p.add_run(f"Max acceleration: {kpis['max_acceleration']} m/s²\n")
+        # p.add_run(f"Detected anomalies: {kpis['n_anomalies']}")
 
-        p = doc.add_paragraph()
-        p.add_run(f"Average displacement: {kpis['avg_displacement']} mm\n")
-        p.add_run(f"Max acceleration: {kpis['max_acceleration']} m/s²\n")
-        p.add_run(f"Detected anomalies: {kpis['n_anomalies']}")
-
-        doc.add_page_break()
+        composer = Composer(master)
+        description = Document(fr"templates/description/{opera_label[:4]}_description.docx")
+        composer.append(description)
+        composer.save("temp.docx")  # Salva un documento temporaneo per evitare errori di composizione
+        master.add_page_break()
 
         # --------------------------------------------------
         # Section 2: Summary Table
         # --------------------------------------------------
 
-        doc.add_heading("2. Summary Statistics", level=1)
-
-        # table = doc.add_table(rows=1, cols=len(summary_df.columns))
+        master.add_heading("2. Summary Statistics", level=1)
 
         # larghezze
         col_widths = [Cm(3), Cm(2.5)]
 
-        table = doc.add_table(rows=1, cols=len(col_widths))
+        table = master.add_table(rows=1, cols=len(col_widths))
         table.autofit = False
 
         # forzo la larghezza delle colonne
@@ -263,39 +262,53 @@ for opera_key, opera_info in opere.items():
             for i, val in enumerate(row):
                 row_cells[i].text = str(val)
 
-        doc.add_page_break()
+        master.add_page_break()
 
         # --------------------------------------------------
         # Section 3: Visual Analysis
         # --------------------------------------------------
 
-        doc.add_heading("3. Visual Analysis", level=1)
-        doc.add_paragraph("Long-term trend analysis:")
+        master.add_heading("3. Visual Analysis", level=1)
 
-        if figures:
-            table = doc.add_table(rows=1, cols=2)
+        # Filtra solo i grafici che iniziano con "sensor"
+        sensor_figures = sorted([f for f in figures if f.startswith("raw")])
 
-            for i in range(0, len(figures), 2):
+        if sensor_figures:
+
+            master.add_paragraph(
+                "Si riportano di seguito i grafici dei dati grezzi di tutti i sensori, "
+                "relativi al periodo di riferimento di questo report. "
+                "Si consideri l'associazione tra l'ID del sensore nel titolo del grafico "
+                "e l'etichetta della posizione indicata negli elaborati grafici."
+            )
+
+            table = master.add_table(rows=1, cols=2)
+
+            for i in range(0, len(sensor_figures), 2):
                 row_cells = table.add_row().cells
-                row_cells[0].paragraphs[0].add_run().add_picture(
-                    os.path.join(fig_dir, figures[i]), width=Cm(7)
-                )
-                if i < len(figures) - 1:
-                    row_cells[1].paragraphs[0].add_run().add_picture(
-                        os.path.join(fig_dir, figures[i + 1]), width=Cm(7)
-                    )
-        else:
-            doc.add_paragraph("No figures available for this month.")
 
-        doc.add_page_break()
+                row_cells[0].paragraphs[0].add_run().add_picture(
+                    os.path.join(fig_dir, sensor_figures[i]), width=Cm(9)
+                )
+
+                if i < len(sensor_figures) - 1:
+                    row_cells[1].paragraphs[0].add_run().add_picture(
+                        os.path.join(fig_dir, sensor_figures[i + 1]), width=Cm(9)
+                    )
+
+        else:
+            master.add_paragraph("Non sono disponibili grafici dei sensori per il mese selezionato.")
+
+        master.add_page_break()
+
 
         # --------------------------------------------------
         # Section 4: Model Performance
         # --------------------------------------------------
 
-        doc.add_heading("4. Model Performance", level=1)
+        master.add_heading("4. Model Performance", level=1)
 
-        table = doc.add_table(rows=1, cols=len(metrics_df.columns))
+        table = master.add_table(rows=1, cols=len(metrics_df.columns))
 
         for i, col in enumerate(metrics_df.columns):
             table.rows[0].cells[i].text = col
@@ -315,9 +328,9 @@ for opera_key, opera_info in opere.items():
         os.makedirs(output_dir, exist_ok=True)
 
         output_path = os.path.join(output_dir, output_name)
-        doc.save(output_path)
+        master.save(output_path)
 
-        doc.save(output_path)
+        master.save(output_path)
         print(f"\033[92m✔ salvato {output_name}\033[0m")
 
         current += relativedelta(months=1)
