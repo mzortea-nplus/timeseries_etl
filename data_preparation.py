@@ -1,12 +1,12 @@
-import pandas as pd
-import numpy as np
-from sklearn.linear_model import LinearRegression
-import sys
 import os
+import sys
 from pathlib import Path
 
 import duckdb
+import numpy as np
+import pandas as pd
 import yaml
+from sklearn.linear_model import LinearRegression
 
 
 def load_config(config_path: str = "configs/config_report.yaml") -> dict:
@@ -15,7 +15,7 @@ def load_config(config_path: str = "configs/config_report.yaml") -> dict:
         return yaml.safe_load(f)
 
 
-def build_data_paths(config: dict) -> tuple[str, str]:
+def build_data_paths(config: dict) -> dict:
     """Build S3 parquet glob paths from config (str_path, tmp_path, month)."""
     data_cfg = config["data"]
     site_code = config["site"]["code"]
@@ -26,20 +26,26 @@ def build_data_paths(config: dict) -> tuple[str, str]:
     str_pattern = None
     tmp_pattern = None
 
-    if 'incl_path' in data_cfg:
+    if "incl_path" in data_cfg:
         incl_path = data_cfg["incl_path"].rstrip("/")
         incl_pattern = f"{incl_path}/{site_code}_{ym}*_rot.parquet"
-    if 'spost_path' in data_cfg:
+    if "spost_path" in data_cfg:
         spost_path = data_cfg["spost_path"].rstrip("/")
         spost_pattern = f"{spost_path}/{site_code}_{ym}*_dsp.parquet"
-    if 'str_path' in data_cfg:
+    if "str_path" in data_cfg:
         str_path = data_cfg["str_path"].rstrip("/")
         str_pattern = f"{str_path}/{site_code}_{ym}*_str.parquet"
-    if 'tmp_path' in data_cfg:
+    if "tmp_path" in data_cfg:
         tmp_path = data_cfg["tmp_path"].rstrip("/")
         tmp_pattern = f"{tmp_path}/{site_code}_{ym}*_tmp.parquet"
 
-    return {'incl': incl_pattern, 'spost': spost_pattern, 'str': str_pattern, 'tmp': tmp_pattern}
+    return {
+        "incl": incl_pattern,
+        "spost": spost_pattern,
+        "str": str_pattern,
+        "tmp": tmp_pattern,
+    }
+
 
 def start_s3_connection(key_id, secret):
     duckdb.sql("INSTALL httpfs")
@@ -52,24 +58,28 @@ def start_s3_connection(key_id, secret):
             SECRET '{secret}',
             REGION 'eu-central-1'
         )
-    """
-    )
+    """)
+
 
 def retrieve_raw_data(filepath: str):
     print(filepath)
-    query = f"""
+    query = (
+        f"""
         SELECT
             time_bucket(INTERVAL '15m', datetime) AS time_range,
             AVG(COLUMNS(*))
         FROM read_parquet('{filepath}')
         GROUP BY time_range
-        ORDER BY time_range;      
-    """ if 'rot' in filepath else f"SELECT * from read_parquet('{filepath}')"
+        ORDER BY time_range;
+    """
+        if "rot" in filepath
+        else f"SELECT * from read_parquet('{filepath}')"
+    )
     if filepath is None:
         return None
     df = duckdb.sql(query).df()
-    df.drop(columns=['datetime'], inplace=True)
-    df = df.rename({'time_range': 'datetime'})
+    df.drop(columns=["datetime"], inplace=True)
+    df = df.rename({"time_range": "datetime"})
     print(df.head(5))
     return df
 
@@ -78,29 +88,30 @@ def thermal_model(df: pd.DataFrame):
 
     nan_value = float("NaN")
     df.replace("", nan_value, inplace=True)
-    df.dropna(how='all', axis=1, inplace=True)
-    df = df.interpolate(method='linear', axis=0)
-    
-    temp_sensors = [c for c in df.columns if c.endswith('_t')]
-    datetime_cols = {'time', 'datetime'} | {
-        c for c in df.columns
-        if pd.api.types.is_datetime64_any_dtype(df[c])
+    df.dropna(how="all", axis=1, inplace=True)
+    df = df.interpolate(method="linear", axis=0)
+
+    temp_sensors = [c for c in df.columns if c.endswith("_t")]
+    datetime_cols = {"time", "datetime"} | {
+        c for c in df.columns if pd.api.types.is_datetime64_any_dtype(df[c])
     }
     sensors = [
-        c for c in df.columns
+        c
+        for c in df.columns
         if c not in temp_sensors
         and c not in datetime_cols
         and pd.api.types.is_numeric_dtype(df[c])
     ]
 
     if len(temp_sensors) == 0:
-        print("!!! Warning: no temperature sensors found. Skipping thermal compensation !!!")
+        print(
+            "!!! Warning: no temperature sensors found. Skipping thermal compensation !!!"
+        )
         return df[sensors].copy()
 
     X = df[temp_sensors].to_numpy().reshape(df.shape[0], -1)
     residuals_df = pd.DataFrame()
     for s in sensors:
-
         y = df[s].to_numpy()
 
         reg = LinearRegression()
@@ -111,10 +122,12 @@ def thermal_model(df: pd.DataFrame):
 
     return residuals_df
 
+
 def z_score(series):
     mean = series.mean()
     std = series.std()
     return (series - mean) / std
+
 
 def control(residuals_df: pd.DataFrame):
     sensors = residuals_df.columns
@@ -123,6 +136,7 @@ def control(residuals_df: pd.DataFrame):
         zscore_df[s] = z_score(residuals_df[s].values)
 
     return zscore_df
+
 
 def run_preparation(
     config_path: str = "configs/config_report.yaml",
@@ -157,7 +171,11 @@ def run_preparation(
     def _set_datetime_index(d):
         if d is None:
             return
-        time_col = "datetime" if "datetime" in d.columns else ("time" if "time" in d.columns else None)
+        time_col = (
+            "datetime"
+            if "datetime" in d.columns
+            else ("time" if "time" in d.columns else None)
+        )
         if time_col:
             d[time_col] = pd.to_datetime(d[time_col])
             d.set_index(time_col, inplace=True)
@@ -179,9 +197,13 @@ def run_preparation(
         elif key == "tmp":
             df_tmp = df
 
-    dfs = [d for d in [df_incl, df_spost, df_str, df_tmp] if d is not None and not d.empty]
+    dfs = [
+        d for d in [df_incl, df_spost, df_str, df_tmp] if d is not None and not d.empty
+    ]
     if not dfs:
-        raise ValueError(f"No data found for {config['site']['code']} in {config['data']['month']}")
+        raise ValueError(
+            f"No data found for {config['site']['code']} in {config['data']['month']}"
+        )
     df_joined = pd.concat(dfs, axis=1, join="inner")
     df_joined = df_joined[~df_joined.index.duplicated(keep="first")]
     df_joined.sort_index(inplace=True)
@@ -203,6 +225,7 @@ def run_preparation(
 
     os.makedirs(os.path.dirname(output_path) or ".", exist_ok=True)
     control_df.to_csv(output_path, index=False)
+    df_joined.to_csv(output_path.replace("control", ""), index=False)
     print(f"\033[92m✔ salvato {output_path}\033[0m")
     return output_path
 

@@ -1,0 +1,9 @@
+site:
+  name: "Adige Ovest"
+  code: "P005"
+data:
+  str_path: "s3://vittorio-field-data/field_data/A4/P005/str/parquet/"
+  tmp_path: "s3://vittorio-field-data/field_data/A4/P005/tmp/parquet/"
+  incl_path: "s3://vittorio-field-data/field_data/A4/P005/rot/parquet/"
+  spost_path: "s3://vittorio-field-data/field_data/A4/P005/dsp/parquet/"
+  month: "2025-12-10"
