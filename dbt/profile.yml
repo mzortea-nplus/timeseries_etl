@@ -1,6 +1,0 @@
-timeseries_etl:
-  target: dev
-  outputs:
-    dev:
-      type: duckdb
-      path: "ETL.duckdb"

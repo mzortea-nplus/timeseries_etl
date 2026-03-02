@@ -17,7 +17,7 @@ def run_torte_plots(
     year: str,
     month: str,
     output_dir: str,
-    opera_key: str = "P005",
+    opera_key: str = "P001",
 ) -> str:
     """
     Generate torte-style pie charts from control CSV.
@@ -111,5 +111,5 @@ if __name__ == "__main__":
         sys.exit(1)
     run_torte_plots(
         sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4],
-        opera_key=sys.argv[5] if len(sys.argv) > 5 else "P005",
+        opera_key=sys.argv[5],
     )
