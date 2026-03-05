@@ -292,6 +292,8 @@ def run_report(
 
     doc.add_page_break()
 
+    print("TORTEEEEEEEEEEEEE")
+
     # --------------------------------------------------
     # Section 4: Visualizzazione Z-Score
     # --------------------------------------------------
