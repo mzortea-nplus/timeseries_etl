@@ -6,7 +6,7 @@ import pandas as pd
 import yaml
 from matplotlib import pyplot as plt
 import matplotlib.dates as mdates
-import yaml
+
 from data_preparation import load_label_dict, get_ylabel
 
 with open("parameters.yaml", "r") as f:
@@ -196,7 +196,7 @@ def run_data_plots(
         plt.plot(t, y_in, "-", color="black", linewidth=0.8)
         plt.scatter(t, y_out, color="darkorange", s=12)
 
-        plt.fill_between([min(t), max(t)], -3, +3, color=params["colors"]["base_blue"], alpha=0.25)
+        plt.fill_between([min(t), max(t)], -3, +3, color=params["colors"]["base_blue"], alpha=0.15)
         plt.hlines([-3, +3], min(t), max(t), color=params["colors"]["dark_blue"], linestyle="--")
 
         plt.text(
@@ -221,7 +221,7 @@ def run_data_plots(
         )
 
         ax = plt.gca()
-        ax.set_xlabel(f"{year}_{month} [gg]", fontsize=FONT_SIZE)
+        ax.set_xlabel("Tempo [gg]", fontsize=FONT_SIZE)
         ax.set_ylabel("z-score", fontsize=FONT_SIZE)
         ax.tick_params(axis="both", labelrotation=0, labelsize=FONT_SIZE)
         ax.xaxis.set_major_locator(mdates.DayLocator(interval=5))
@@ -251,7 +251,7 @@ def run_data_plots(
         plt.fill_between(t, 0, 3.0, color=params["colors"]["dark_blue"], alpha=0.2)
 
         ax = plt.gca()
-        ax.set_xlabel(f"{year}_{month} [gg]", fontsize=FONT_SIZE)
+        ax.set_xlabel("Tempo [gg]", fontsize=FONT_SIZE)
         ax.set_ylabel("Livello di allerta", fontsize=FONT_SIZE)
         ax.set_title(f"Livello di allerta {pretty_name}", fontsize=FONT_SIZE)
         ax.tick_params(axis="x", labelrotation=0, labelsize=FONT_SIZE)
@@ -303,7 +303,7 @@ class EventsController:
 
         for i in range(len(self.z)):
             if alarm_val > 3:
-                print("ALLARMEEEEEEE")
+                print("ALLARME")
                 alarm_val = 0
             else:
                 p = 1 if self.warning(i) else 0
