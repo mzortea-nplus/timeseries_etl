@@ -237,17 +237,69 @@ def run_report(
     # --------------------------------------------------
     doc.add_heading("2. Disponibilità Dati", level=1)
 
-    torte_file = None
-    for f in all_figures:
-        if "torte" in f.lower() and f.lower().endswith(".png"):
-            torte_file = os.path.join(fig_dir, f)
-            break
+    df = pd.read_csv("outputs/nans_percentage.csv")
+    df = df[['sensore', 'label', 'dati mancanti']]
 
-    if torte_file:
-        doc.add_paragraph()
-        doc.add_picture(torte_file, width=Inches(6.5))
-    else:
-        doc.add_paragraph("Torte plot not available for this period.")
+    n_rows, n_cols = df.shape
+    col_widths = [Cm(2)] * n_cols
+
+    # rows first, then columns
+    table = doc.add_table(rows=n_rows + 1, cols=n_cols)
+    table.autofit = False
+
+    # set column widths
+    for i, width in enumerate(col_widths):
+        table.columns[i].width = width
+
+    # header row
+    for j, col_name in enumerate(df.columns):
+        table.cell(0, j).text = str(col_name)
+
+    # table body
+    for i in range(n_rows):
+        for j in range(n_cols):
+            value = df.iat[i, j]
+
+            if df.columns[j] == "dati mancanti":
+                text = f"{float(value):.2f}%"
+            else:
+                text = str(value)
+
+            table.cell(i + 1, j).text = text
+
+
+    # for i, width in enumerate(col_widths):
+    #     table.columns[i].width = width
+    #     for cell in table.columns[i].cells:
+    #         tc = cell._tc
+    #         tcPr = tc.get_or_add_tcPr()
+    #         w = OxmlElement("w:tcW")
+    #         w.set(qn("w:w"), str(int(width.pt * 30)))
+    #         w.set(qn("w:type"), "dxa")
+    #         tcPr.append(w)
+
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+
+    # for i, col in enumerate(summary_df.columns):
+    #     table.rows[0].cells[i].text = str(col)
+
+    # for _, row in summary_df.iterrows():
+    #     row_cells = table.add_row().cells
+    #     for i, val in enumerate(row):
+    #         row_cells[i].text = str(val)
+
+
+    '''torte_file = None
+                for f in all_figures:
+                    if "torte" in f.lower() and f.lower().endswith(".png"):
+                        torte_file = os.path.join(fig_dir, f)
+                        break
+            
+                if torte_file:
+                    doc.add_paragraph()
+                    doc.add_picture(torte_file, width=Inches(6.5))
+                else:
+                    doc.add_paragraph("Torte plot not available for this period.")'''
 
     doc.add_page_break()
 
