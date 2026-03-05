@@ -11,6 +11,10 @@ import os
 import sys
 
 import yaml
+from data_plots import run_data_plots
+from data_preparation import run_preparation
+from report import run_report
+
 
 
 def load_config(config_path: str = "configs/config_report.yaml") -> dict:
@@ -66,15 +70,16 @@ def main():
     print("REPORT PIPELINE")
     print("=" * 60)
 
+    print("!!! Warning: missing data is counted from aggregated values (SQL Query) !!!")
+
     # Step 1: Data preparation
     if not args.skip_data_prep:
         print("\n[1/4] Running data_preparation.py ...")
-        from data_preparation import run_preparation
         run_preparation(
             config_path=args.config,
             key_id=args.key_id,
             secret=args.secret,
-            output_path=control_csv,
+            output_path=control_csv
         )
     else:
         print("\n[1/4] Skipping data preparation (--skip-data-prep)")
@@ -84,7 +89,6 @@ def main():
 
     # Step 2: Alert dynamics
     print("\n[2/4] Running data_plots.py ...")
-    from data_plots import run_data_plots
 
     run_data_plots(
         control_csv_path=control_csv,
@@ -93,24 +97,8 @@ def main():
         opera_key=site_code,
     )
 
-    # Step 3: Torte plots (using same control data)
-    if not args.skip_torte:
-        print("\n[3/4] Running torte_plots.py ...")
-        from torte_plots import run_torte_plots
-
-        run_torte_plots(
-            control_csv_path=control_csv,
-            year=year,
-            month=month,
-            output_dir=fig_dir,
-            opera_key=site_code,
-        )
-    else:
-        print("\n[3/4] Skipping torte plots (--skip-torte)")
-
     # Step 4: Report
     print("\n[4/4] Running report.py ...")
-    from report import run_report
 
     run_report(config_path=args.config, year=year, month=month)
     print("\n" + "=" * 60)
