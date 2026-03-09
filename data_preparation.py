@@ -10,6 +10,9 @@ import matplotlib.dates as mdates
 import duckdb
 import yaml
 
+with open("parameters.yaml", "r") as f:
+    params = yaml.safe_load(f)
+
 OPERE = {
     "P001": "P001_Sommacampagna",
     "P002": "P002_Giuliari_Milani",
@@ -107,20 +110,46 @@ def start_s3_connection(key_id, secret):
 
 def retrieve_raw_data(filepath: str):
     print(filepath)
-    query = f"""
-        SELECT
-            time_bucket(INTERVAL '15m', datetime) AS time_range,
-            AVG(COLUMNS(*))
-        FROM read_parquet('{filepath}')
-        GROUP BY time_range
-        ORDER BY time_range;      
-    """ if 'rot' in filepath else f"SELECT * from read_parquet('{filepath}')"
-    if filepath is None:
-        return None
+
+    # read first row to get columns
+    query = f"SELECT any_value(COLUMNS(*)) FROM read_parquet('{filepath}')"
     df = duckdb.sql(query).df()
-    df.drop(columns=['datetime'], inplace=True)
-    df = df.rename({'time_range': 'datetime'})
+
+    # drop columns that are entirely NaN
+    df = df.dropna(axis=1, how="all")
+    columns_to_query = df.columns.tolist()
+
+    # remove datetime if present (used separately in time_bucket)
+    cols = [c for c in columns_to_query if c != "datetime"]
+
+    if "rot" in filepath:
+        # try to cast all columns to DOUBLE for aggregation
+        agg_cols = []
+        for c in cols:
+            agg_cols.append(f"avg(CAST(\"{c}\" AS DOUBLE)) AS \"{c}\"")
+
+        cols_sql = ", ".join(agg_cols)
+
+        query = f"""
+            SELECT
+                time_bucket(INTERVAL '15m', datetime) AS time_range,
+                {cols_sql}
+            FROM read_parquet('{filepath}')
+            GROUP BY time_range
+            ORDER BY time_range
+        """
+        df = duckdb.sql(query).df()
+        df = df.rename(columns={'time_range': 'datetime'})
+
+    else:
+        agg_cols = []
+        for c in cols:
+            agg_cols.append(f"CAST(\"{c}\" AS DOUBLE) AS \"{c}\"")
+            cols_sql = ", ".join(agg_cols)
+        query = f"SELECT datetime, {cols_sql} FROM read_parquet('{filepath}')"
+        df = duckdb.sql(query).df()
     print(df.head(5))
+
     return df
 
 def plot_raw_data(df_raw, config):
@@ -142,7 +171,7 @@ def plot_raw_data(df_raw, config):
     os.makedirs(fig_out, exist_ok=True)
 
 
-    t_raw = df_raw['time_range'] if 'time_range' in df_raw else (df_raw['time'] if 'time' in df_raw.columns else None)
+    t_raw = df_raw['time_range'] if 'time_range' in df_raw else (df_raw['datetime'] if 'datetime' in df_raw.columns else None)
     if t_raw is None:
         raise Exception('Time column not found in raw_data')
 
@@ -169,10 +198,10 @@ def plot_raw_data(df_raw, config):
 
         fig, ax1 = plt.subplots(figsize=(12, 5))
 
-        ax1.plot(t_raw, y, color='blue', linewidth=1)
-        ax1.set_xlabel(f"Time [gg]", fontsize=FONT_SIZE)
-        ax1.set_ylabel(get_ylabel(sensor_id), color='blue', fontsize=FONT_SIZE)
-        ax1.tick_params(axis='y', labelcolor='blue', labelsize=FONT_SIZE)
+        ax1.plot(t_raw, y, color=params['colors']['base_blue'], linewidth=1)
+        ax1.set_xlabel("Tempo [gg]", fontsize=FONT_SIZE)
+        ax1.set_ylabel(get_ylabel(sensor_id), color=params['colors']['base_blue'], fontsize=FONT_SIZE)
+        ax1.tick_params(axis='y', labelcolor=params['colors']['base_blue'], labelsize=FONT_SIZE)
         ax1.xaxis.set_major_locator(
             mdates.DayLocator(bymonthday=range(5, 32, 5))
         )
@@ -313,7 +342,14 @@ def run_preparation(
     df_joined = df_joined[~df_joined.index.duplicated(keep="first")]
     df_joined.sort_index(inplace=True)
     # count missing timestamps
-    delta_t_arr = df_joined['time_range'].diff().dt.total_seconds()
+    df_joined = df_joined.reset_index()  # moves index into a column named 'index'
+
+    # rename to 'datetime' if needed
+    if 'index' in df_joined.columns:
+        df_joined = df_joined.rename(columns={'index': 'datetime'})
+
+    # now you can compute time differences
+    delta_t_arr = df_joined['datetime'].diff().dt.total_seconds()
     delta_t = delta_t_arr.mode()[0]
     missing_timestamps = np.sum(np.where(delta_t_arr > 1.1 * delta_t))
     print("missing_timestamps:", missing_timestamps)
@@ -364,6 +400,7 @@ def run_preparation(
     control_df.to_csv(output_path, index=False)
     print(f"\033[92m✔ salvato {output_path}\033[0m")
     return output_path
+
 
 
 if __name__ == "__main__":

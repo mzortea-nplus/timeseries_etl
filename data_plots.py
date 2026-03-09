@@ -167,22 +167,22 @@ def run_data_plots(
     # Plots + warnings/alarms (with labels)
     # --------------------------------------------------
     summary: list[dict] = []
-
+ 
     for col in df.columns:
         if col == "time":
             continue
-
+ 
         y = df[col].to_numpy()
-
+ 
         base_id = col.split("_")[0].upper()
         if base_id not in label_dict:
             raise ValueError(f"ID sensore '{base_id}' non presente nel file label-id")
         label = label_dict[base_id]
-
+ 
         suffix = col.split("_")[-1]
         axis_tag = f"_{suffix}" if suffix in ["x", "y"] else ""
         pretty_name = f"{label}{axis_tag}"
-
+ 
         # ----------------------
         # z-score
         # ----------------------
@@ -191,18 +191,18 @@ def run_data_plots(
         y_in = y.copy()
         y_out = y.copy()
         y_out[in_range] = np.nan
-
+ 
         plt.figure(figsize=(12, 7))
         plt.plot(t, y_in, "-", color="black", linewidth=0.8)
         plt.scatter(t, y_out, color="darkorange", s=12)
-
+ 
         plt.fill_between([min(t), max(t)], -3, +3, color=params["colors"]["base_blue"], alpha=0.15)
         plt.hlines([-3, +3], min(t), max(t), color=params["colors"]["dark_blue"], linestyle="--")
-
+ 
         plt.text(
             0.5,
             0.125,
-            "Lower Control Limit",
+            "Limite warning",
             ha="center",
             va="center",
             transform=plt.gca().transAxes,
@@ -212,14 +212,14 @@ def run_data_plots(
         plt.text(
             0.5,
             0.875,
-            "Upper Control Limit",
+            "Limite warning",
             ha="center",
             va="center",
             transform=plt.gca().transAxes,
             color=params["colors"]["dark_blue"],
             fontsize=FONT_SIZE,
         )
-
+ 
         ax = plt.gca()
         ax.set_xlabel("Tempo [gg]", fontsize=FONT_SIZE)
         ax.set_ylabel("z-score", fontsize=FONT_SIZE)
@@ -231,14 +231,13 @@ def run_data_plots(
         ax.set_title(pretty_name, fontsize=FONT_SIZE)
         ax.grid(True, which="major", axis="both", linestyle="--")
         plt.tight_layout()
-
+ 
         output_png = os.path.join(fig_out, f"z-score_{col}.png")
         plt.savefig(output_png, dpi=300)
         plt.close()
         print(f"\033[92m✔ salvato {output_png}\033[0m")
-
+ 
         n_warning = int(np.sum(np.abs(y) > 3))
-
         # ----------------------
         # livello di allarme
         # ----------------------

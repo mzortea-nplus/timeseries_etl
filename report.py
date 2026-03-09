@@ -237,8 +237,11 @@ def run_report(
     # --------------------------------------------------
     doc.add_heading("2. Disponibilità Dati", level=1)
 
+    doc.add_paragraph("\n")
+    
     df = pd.read_csv("outputs/nans_percentage.csv")
     df = df[['sensore', 'label', 'dati mancanti']]
+    df = df.rename(columns={'sensore': 'ID sensore', 'label': 'Label', 'dati mancanti': 'Dati mancanti'})
 
     n_rows, n_cols = df.shape
     col_widths = [Cm(2)] * n_cols
@@ -260,7 +263,7 @@ def run_report(
         for j in range(n_cols):
             value = df.iat[i, j]
 
-            if df.columns[j] == "dati mancanti":
+            if df.columns[j] == "Dati mancanti":
                 text = f"{float(value):.2f}%"
             else:
                 text = str(value)
@@ -402,7 +405,15 @@ def run_report(
     # --------------------------------------------------
     # Section 5: Warnings e Alerts (summary table)
     # --------------------------------------------------
-    doc.add_heading("5. Warnings e Alerts", level=1)
+
+    summary_df = summary_df.rename(columns={'sensor_id': 'ID sensore', 'label': 'Label', 'warnings': 'Warnings', 'alarms': 'Allarmi' })
+    doc.add_heading("5. Warnings e Allarmi", level=1)
+
+    doc.add_paragraph(
+            "\nSi riporta di seguito una tabella contenente, per ciascun sensore, il numero di superamenti delle soglie di controllo (warnings) e di allarme."
+            "Le soglie di controllo sono state fissate ad un valore pari a tre deviazioni standard attorno al valore medio del segnale corrispondente."
+            "La soglia di allarme è stata definita come da documento inviato in data 28.11.2025: 'Comunicazione gestione soglie di allarme' \n"
+    )
 
     n_cols = len(summary_df.columns)
     col_widths = [Cm(2)] * n_cols
