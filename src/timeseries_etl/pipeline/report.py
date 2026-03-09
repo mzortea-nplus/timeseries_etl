@@ -18,7 +18,7 @@ from timeseries_etl.domain import MESI_IT, get_opera_info
 from timeseries_etl.domain.labels import load_label_dict
 
 CLIENTE = "A4"
-TEMPLATE_PATH = "templates/A4_Template.docx"
+TEMPLATE_PATH = "templates/template.dotx"
 NANS_CSV = "outputs/nans_percentage.csv"
 
 
