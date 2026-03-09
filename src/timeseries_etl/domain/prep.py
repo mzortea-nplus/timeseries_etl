@@ -1,5 +1,6 @@
 """Thermal model and control (z-score) computations."""
 
+import warnings
 from pathlib import Path
 from typing import Mapping
 
@@ -7,6 +8,7 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn.base import RegressorMixin
+from sklearn.linear_model import LinearRegression
 
 from timeseries_etl.domain.stats import z_score
 
@@ -32,18 +34,15 @@ def _load_model_for_sensor(
     sensor: str,
     models: Mapping[str, RegressorMixin] | None = None,
     model_dir: str | None = None,
-) -> RegressorMixin:
-    """Return a pre-fitted sklearn regressor for the given sensor.
-
-    Models MUST be pre-fitted; this function never fits.
-    """
+) -> RegressorMixin | None:
+    """Return a pre-fitted sklearn regressor for the given sensor, or None if not found."""
     if models and sensor in models:
         return models[sensor]
     if model_dir:
         path = Path(model_dir) / f"{sensor}.joblib"
         if path.exists():
             return joblib.load(path)
-    raise ValueError(f"No pre-fitted model available for sensor '{sensor}'")
+    return None
 
 
 def thermal_model(
@@ -73,6 +72,10 @@ def thermal_model(
     for s in sensors:
         y = df[s].to_numpy()
         model = _load_model_for_sensor(s, models=models, model_dir=model_dir)
+        if model is None:
+            warnings.warn(f"No pre-fitted model for sensor '{s}'; falling back to linear fit on temperature.", UserWarning)
+            model = LinearRegression()
+            model.fit(X, y)
         y_pred = model.predict(X)
         residuals_df[s] = y - y_pred
 
@@ -112,6 +115,10 @@ def thermal_model_with_predictions(
     for s in sensors:
         y = df[s].to_numpy()
         model = _load_model_for_sensor(s, models=models, model_dir=model_dir)
+        if model is None:
+            warnings.warn(f"No pre-fitted model for sensor '{s}'; falling back to linear fit on temperature.", UserWarning)
+            model = LinearRegression()
+            model.fit(X, y)
         y_pred = model.predict(X)
         preds_df[s] = y_pred
         residuals = y - y_pred

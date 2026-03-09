@@ -15,6 +15,7 @@ from docxcompose.composer import Composer
 
 from timeseries_etl.config import load_config
 from timeseries_etl.domain import MESI_IT, get_opera_info
+from timeseries_etl.domain.labels import load_label_dict
 
 CLIENTE = "A4"
 TEMPLATE_PATH = "templates/A4_Template.docx"
@@ -143,6 +144,7 @@ def run_report(
     if os.path.exists(NANS_CSV):
         nans_df = pd.read_csv(NANS_CSV)
         nans_df = nans_df[["sensore", "label", "dati mancanti"]]
+        nans_df = nans_df.sort_values(by="label")
         nans_df = nans_df.rename(
             columns={"sensore": "ID sensore", "label": "Label", "dati mancanti": "Dati mancanti"}
         )
@@ -171,13 +173,26 @@ def run_report(
         "di una sonda di riferimento, per evidenziare eventuali correlazioni.\n"
     )
 
+    label_dict = load_label_dict(site_code)
+
+    def _raw_fig_sort_key(f: str) -> tuple[str, str]:
+        """Sort raw figures by (label, axis_tag)."""
+        base = f.replace("raw_", "").replace(".png", "").replace(".jpg", "").replace(".jpeg", "")
+        for suffix in ["_x", "_y", "_s", "_e"]:
+            if base.endswith(suffix):
+                return (base[:-len(suffix)], suffix)
+        return (base, "")
+
     tipologie_raw = {
         "Inclinometri": "raw_ICD",
         "Potenziometri": "raw_POT",
         "Estensimetri": "raw_EST",
     }
     for nome_tipologia, prefisso in tipologie_raw.items():
-        tipo_figures = sorted(f for f in figures_no_torte if f.startswith(prefisso))
+        tipo_figures = sorted(
+            (f for f in figures_no_torte if f.startswith(prefisso)),
+            key=_raw_fig_sort_key,
+        )
         if not tipo_figures:
             continue
         doc.add_heading(nome_tipologia, level=2)
@@ -216,8 +231,14 @@ def run_report(
         if cat:
             tipologie_zscore[cat].append(f)
 
+    def _zscore_fig_sort_key(f: str) -> str:
+        """Sort z-score figures by label (from summary_df)."""
+        sensor_id = f.replace("z-score_", "").rsplit(".", 1)[0]
+        row = summary_df[summary_df["sensor_id"] == sensor_id]
+        return row["label"].iloc[0] if len(row) else sensor_id
+
     for nome_tipologia, tipo_figures in tipologie_zscore.items():
-        tipo_figures = sorted(tipo_figures)
+        tipo_figures = sorted(tipo_figures, key=_zscore_fig_sort_key)
         if not tipo_figures:
             continue
         doc.add_heading(nome_tipologia, level=2)
@@ -235,6 +256,7 @@ def run_report(
 
     doc.add_page_break()
 
+    summary_df = summary_df.sort_values(by="label")
     summary_df = summary_df.rename(
         columns={
             "sensor_id": "ID sensore",
