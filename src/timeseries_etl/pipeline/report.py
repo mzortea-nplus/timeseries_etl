@@ -2,7 +2,10 @@
 
 import json
 import os
+import tempfile
+import zipfile
 from datetime import date, datetime
+
 
 import pandas as pd
 from dateutil.relativedelta import relativedelta
@@ -46,6 +49,32 @@ def _replace_placeholders(doc: Document, replacements: dict[str, str]) -> None:
             for row in table.rows:
                 for cell in row.cells:
                     replace_in_paragraphs(cell.paragraphs)
+
+
+def _load_dotx_as_document(path: str):
+    """Load a .dotx template as a Document. python-docx rejects .dotx; we convert to temp .docx."""
+    if not path.lower().endswith(".dotx"):
+        return Document(path)
+
+    with tempfile.NamedTemporaryFile(suffix=".docx", delete=False) as tmp:
+        tmp_path = tmp.name
+    try:
+        with zipfile.ZipFile(path, "r") as z_in:
+            with zipfile.ZipFile(tmp_path, "w", zipfile.ZIP_DEFLATED) as z_out:
+                for name in z_in.namelist():
+                    data = z_in.read(name)
+                    if name == "[Content_Types].xml":
+                        data = data.decode("utf-8").replace(
+                            "wordprocessingml.template.main+xml",
+                            "wordprocessingml.document.main+xml",
+                        ).encode("utf-8")
+                    z_out.writestr(name, data)
+        return Document(tmp_path)
+    finally:
+        try:
+            os.unlink(tmp_path)
+        except OSError:
+            pass
 
 
 def _classifica_tipologia_zscore(nome_file: str) -> str | None:
@@ -124,7 +153,7 @@ def run_report(
         "{{Comune}}": opera_comune,
     }
 
-    master = Document(TEMPLATE_PATH) if os.path.exists(TEMPLATE_PATH) else Document()
+    master = _load_dotx_as_document(TEMPLATE_PATH) if os.path.exists(TEMPLATE_PATH) else Document()
     _replace_placeholders(master, replacements)
 
     composer = Composer(master)
