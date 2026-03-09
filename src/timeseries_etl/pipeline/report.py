@@ -87,8 +87,8 @@ def run_report(
     start_month = date(year_int, month_int, 1)
     end_month = start_month + relativedelta(months=1)
 
-    fig_dir = os.path.join("figures", opera_key, mese_tag)
-    base_out = os.path.join("outputs", opera_key, mese_tag)
+    fig_dir = os.path.join("figures", site_code, mese_tag)
+    base_out = os.path.join("outputs", site_code, mese_tag)
     summary_csv = os.path.join(fig_dir, f"{year}_{month}_summary.csv")
 
     if not os.path.isdir(fig_dir):
@@ -299,7 +299,7 @@ def run_report(
     doc.add_page_break()
 
     os.makedirs(base_out, exist_ok=True)
-    output_name = f"{CLIENTE}_{opera_key}_{mese_tag}.docx"
+    output_name = f"{CLIENTE}_{site_code}_{mese_tag}.docx"
     output_path = os.path.join(base_out, output_name)
     doc.save(output_path)
     print(f"\033[92m✔ salvato {output_name}\033[0m")
