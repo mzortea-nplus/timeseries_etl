@@ -237,17 +237,72 @@ def run_report(
     # --------------------------------------------------
     doc.add_heading("2. Disponibilità Dati", level=1)
 
-    torte_file = None
-    for f in all_figures:
-        if "torte" in f.lower() and f.lower().endswith(".png"):
-            torte_file = os.path.join(fig_dir, f)
-            break
+    doc.add_paragraph("\n")
+    
+    df = pd.read_csv("outputs/nans_percentage.csv")
+    df = df[['sensore', 'label', 'dati mancanti']]
+    df = df.rename(columns={'sensore': 'ID sensore', 'label': 'Label', 'dati mancanti': 'Dati mancanti'})
 
-    if torte_file:
-        doc.add_paragraph()
-        doc.add_picture(torte_file, width=Inches(6.5))
-    else:
-        doc.add_paragraph("Torte plot not available for this period.")
+    n_rows, n_cols = df.shape
+    col_widths = [Cm(2)] * n_cols
+
+    # rows first, then columns
+    table = doc.add_table(rows=n_rows + 1, cols=n_cols)
+    table.autofit = False
+
+    # set column widths
+    for i, width in enumerate(col_widths):
+        table.columns[i].width = width
+
+    # header row
+    for j, col_name in enumerate(df.columns):
+        table.cell(0, j).text = str(col_name)
+
+    # table body
+    for i in range(n_rows):
+        for j in range(n_cols):
+            value = df.iat[i, j]
+
+            if df.columns[j] == "Dati mancanti":
+                text = f"{float(value):.2f}%"
+            else:
+                text = str(value)
+
+            table.cell(i + 1, j).text = text
+
+
+    # for i, width in enumerate(col_widths):
+    #     table.columns[i].width = width
+    #     for cell in table.columns[i].cells:
+    #         tc = cell._tc
+    #         tcPr = tc.get_or_add_tcPr()
+    #         w = OxmlElement("w:tcW")
+    #         w.set(qn("w:w"), str(int(width.pt * 30)))
+    #         w.set(qn("w:type"), "dxa")
+    #         tcPr.append(w)
+
+    table.alignment = WD_TABLE_ALIGNMENT.CENTER
+
+    # for i, col in enumerate(summary_df.columns):
+    #     table.rows[0].cells[i].text = str(col)
+
+    # for _, row in summary_df.iterrows():
+    #     row_cells = table.add_row().cells
+    #     for i, val in enumerate(row):
+    #         row_cells[i].text = str(val)
+
+
+    '''torte_file = None
+                for f in all_figures:
+                    if "torte" in f.lower() and f.lower().endswith(".png"):
+                        torte_file = os.path.join(fig_dir, f)
+                        break
+            
+                if torte_file:
+                    doc.add_paragraph()
+                    doc.add_picture(torte_file, width=Inches(6.5))
+                else:
+                    doc.add_paragraph("Torte plot not available for this period.")'''
 
     doc.add_page_break()
 
@@ -350,7 +405,15 @@ def run_report(
     # --------------------------------------------------
     # Section 5: Warnings e Alerts (summary table)
     # --------------------------------------------------
-    doc.add_heading("5. Warnings e Alerts", level=1)
+
+    summary_df = summary_df.rename(columns={'sensor_id': 'ID sensore', 'label': 'Label', 'warnings': 'Warnings', 'alarms': 'Allarmi' })
+    doc.add_heading("5. Warnings e Allarmi", level=1)
+
+    doc.add_paragraph(
+            "\nSi riporta di seguito una tabella contenente, per ciascun sensore, il numero di superamenti delle soglie di controllo (warnings) e di allarme."
+            "Le soglie di controllo sono state fissate ad un valore pari a tre deviazioni standard attorno al valore medio del segnale corrispondente."
+            "La soglia di allarme è stata definita come da documento inviato in data 28.11.2025: 'Comunicazione gestione soglie di allarme' \n"
+    )
 
     n_cols = len(summary_df.columns)
     col_widths = [Cm(2)] * n_cols

@@ -6,7 +6,8 @@ import pandas as pd
 import yaml
 from matplotlib import pyplot as plt
 import matplotlib.dates as mdates
-import yaml
+
+from data_preparation import load_label_dict, get_ylabel
 
 with open("parameters.yaml", "r") as f:
     params = yaml.safe_load(f)
@@ -33,43 +34,6 @@ def load_config(config_path: str = "configs/config_report.yaml") -> dict:
         return yaml.safe_load(f)
 
 
-def get_ylabel(sensor_id: str) -> str:
-    """Return pretty y-label for raw units."""
-    suffix = sensor_id.split("_")[-1]
-    mapping = {
-        "t": "Temperatura [°C]",
-        "e": "Estensione [mm]",
-        "s": "Spostamento [mm]",
-        "x": "Rotazione longitudinale [mrad]",
-        "y": "Rotazione trasversale [mrad]",
-    }
-    return mapping.get(suffix, sensor_id)
-
-
-def load_label_dict(opera_key: str) -> dict:
-    """
-    Load mapping ID → human-readable label from
-    data/label-id/{OPERA_KEY}_label-id.csv (same logic as original script).
-    """
-    label_path = os.path.join("data", "label-id", f"{opera_key}_label-id.csv")
-    if not os.path.exists(label_path):
-        raise FileNotFoundError(f"File label-id non trovato: {label_path}")
-
-    label_df = pd.read_csv(label_path, sep=None, engine="python")
-    if label_df.shape[1] < 2:
-        raise ValueError(
-            f"Il file {label_path} deve avere almeno 2 colonne (label, id)"
-        )
-
-    label_df.iloc[:, 0] = label_df.iloc[:, 0].astype(str).str.strip()
-    label_df.iloc[:, 1] = label_df.iloc[:, 1].astype(str).str.strip()
-
-    label_dict = {
-        row_id.split("_")[0].upper(): label
-        for label, row_id in zip(label_df.iloc[:, 0], label_df.iloc[:, 1])
-    }
-    print(f"✔ Caricate {len(label_dict)} associazioni ID → Label")
-    return label_dict
 
 
 def run_data_plots(
@@ -111,77 +75,77 @@ def run_data_plots(
     # --------------------------------------------------
     # Raw-data + temperature plots from persisted CSV (if available)
     # --------------------------------------------------
-    raw_path = os.path.join("data", f"raw_{site_code}_{year}_{month}.csv")
-    if os.path.exists(raw_path):
-        try:
-            df_raw = pd.read_csv(raw_path)
-            if "time" in df_raw.columns:
-                t_raw = pd.to_datetime(df_raw["time"])
-            else:
-                t_raw = pd.date_range(
-                    start=f"{year}-{month}-01", periods=len(df_raw), freq="15min"
-                )
+    # raw_path = os.path.join("data", f"raw_{site_code}_{year}_{month}.csv")
+    # if os.path.exists(raw_path):
+    #     try:
+    #         df_raw = pd.read_csv(raw_path)
+    #         if "time" in df_raw.columns:
+    #             t_raw = pd.to_datetime(df_raw["time"])
+    #         else:
+    #             t_raw = pd.date_range(
+    #                 start=f"{year}-{month}-01", periods=len(df_raw), freq="15min"
+    #             )
 
-            sensor_cols = [c for c in df_raw.columns if c not in ["time", "month"]]
-            temp_sensors = [c for c in sensor_cols if c.endswith("_t")]
-            struct_sensors = [c for c in sensor_cols if not c.endswith("_t")]
+    #         sensor_cols = [c for c in df_raw.columns if c not in ["time", "month"]]
+    #         temp_sensors = [c for c in sensor_cols if c.endswith("_t")]
+    #         struct_sensors = [c for c in sensor_cols if not c.endswith("_t")]
 
-            if temp_sensors:
-                temp_col = temp_sensors[0]
-                temperature = df_raw[temp_col]
+    #         if temp_sensors:
+    #             temp_col = temp_sensors[0]
+    #             temperature = df_raw[temp_col]
 
-                for sensor_id in struct_sensors:
-                    base_id = sensor_id.split("_")[0].upper()
-                    if base_id not in label_dict:
-                        continue
+    #             for sensor_id in struct_sensors:
+    #                 base_id = sensor_id.split("_")[0].upper()
+    #                 if base_id not in label_dict:
+    #                     continue
 
-                    label = label_dict[base_id]
-                    y = df_raw[sensor_id].copy()
+    #                 label = label_dict[base_id]
+    #                 y = df_raw[sensor_id].copy()
 
-                    suffix = sensor_id.split("_")[-1]
-                    axis_tag = f"_{suffix}" if suffix in ["x", "y"] else ""
-                    if suffix in ["x", "y"]:
-                        y = y * DEG_TO_MRAD
+    #                 suffix = sensor_id.split("_")[-1]
+    #                 axis_tag = f"_{suffix}" if suffix in ["x", "y"] else ""
+    #                 if suffix in ["x", "y"]:
+    #                     y = y * DEG_TO_MRAD
 
-                    fig, ax1 = plt.subplots(figsize=(12, 5))
+    #                 fig, ax1 = plt.subplots(figsize=(12, 5))
 
-                    ax1.plot(t_raw, y, color='blue', linewidth=1)
-                    ax1.set_xlabel(f"{year}_{month} [gg]", fontsize=FONT_SIZE)
-                    ax1.set_ylabel(get_ylabel(sensor_id), color='blue', fontsize=FONT_SIZE)
-                    ax1.tick_params(axis='y', labelcolor='blue', labelsize=FONT_SIZE)
-                    ax1.xaxis.set_major_locator(
-                        mdates.DayLocator(bymonthday=range(5, 32, 5))
-                    )
-                    ax1.xaxis.set_major_formatter(mdates.DateFormatter("%d"))
-                    ax1.grid(True, linestyle="--")
+    #                 ax1.plot(t_raw, y, color='blue', linewidth=1)
+    #                 ax1.set_xlabel(f"{year}_{month} [gg]", fontsize=FONT_SIZE)
+    #                 ax1.set_ylabel(get_ylabel(sensor_id), color='blue', fontsize=FONT_SIZE)
+    #                 ax1.tick_params(axis='y', labelcolor='blue', labelsize=FONT_SIZE)
+    #                 ax1.xaxis.set_major_locator(
+    #                     mdates.DayLocator(bymonthday=range(5, 32, 5))
+    #                 )
+    #                 ax1.xaxis.set_major_formatter(mdates.DateFormatter("%d"))
+    #                 ax1.grid(True, linestyle="--")
 
-                    ax2 = ax1.twinx()
-                    ax2.plot(t_raw, temperature, color="darkorange", linewidth=1.5)
-                    ax2.set_ylabel(
-                        "Temperatura [°C]", color="darkorange", fontsize=FONT_SIZE
-                    )
-                    ax2.tick_params(
-                        axis="y", labelcolor="darkorange", labelsize=FONT_SIZE
-                    )
+    #                 ax2 = ax1.twinx()
+    #                 ax2.plot(t_raw, temperature, color="darkorange", linewidth=1.5)
+    #                 ax2.set_ylabel(
+    #                     "Temperatura [°C]", color="darkorange", fontsize=FONT_SIZE
+    #                 )
+    #                 ax2.tick_params(
+    #                     axis="y", labelcolor="darkorange", labelsize=FONT_SIZE
+    #                 )
 
-                    temp_label = label_dict.get(
-                        temp_col.split("_")[0].upper(), temp_col
-                    )
-                    plt.title(f"{label}{axis_tag} e {temp_label}", fontsize=FONT_SIZE)
-                    plt.tight_layout()
+    #                 temp_label = label_dict.get(
+    #                     temp_col.split("_")[0].upper(), temp_col
+    #                 )
+    #                 plt.title(f"{label}{axis_tag} e {temp_label}", fontsize=FONT_SIZE)
+    #                 plt.tight_layout()
 
-                    output_png = os.path.join(fig_out, f"raw_{label}{axis_tag}.png")
-                    plt.savefig(output_png, dpi=300)
-                    plt.close()
-                    print(f"\033[92m✔ salvato {output_png}\033[0m")
-        except Exception as exc:
-            print(f"⚠ Errore nella generazione dei grafici raw: {exc}")
-        finally:
-            # Remove temporary raw file to save storage
-            try:
-                os.remove(raw_path)
-            except OSError:
-                pass
+    #                 output_png = os.path.join(fig_out, f"raw_{label}{axis_tag}.png")
+    #                 plt.savefig(output_png, dpi=300)
+    #                 plt.close()
+    #                 print(f"\033[92m✔ salvato {output_png}\033[0m")
+    #     except Exception as exc:
+    #         print(f"⚠ Errore nella generazione dei grafici raw: {exc}")
+    #     finally:
+    #         # Remove temporary raw file to save storage
+    #         try:
+    #             os.remove(raw_path)
+    #         except OSError:
+    #             pass
 
     # --------------------------------------------------
     # Load z-score control data
@@ -203,22 +167,22 @@ def run_data_plots(
     # Plots + warnings/alarms (with labels)
     # --------------------------------------------------
     summary: list[dict] = []
-
+ 
     for col in df.columns:
         if col == "time":
             continue
-
+ 
         y = df[col].to_numpy()
-
+ 
         base_id = col.split("_")[0].upper()
         if base_id not in label_dict:
             raise ValueError(f"ID sensore '{base_id}' non presente nel file label-id")
         label = label_dict[base_id]
-
+ 
         suffix = col.split("_")[-1]
         axis_tag = f"_{suffix}" if suffix in ["x", "y"] else ""
         pretty_name = f"{label}{axis_tag}"
-
+ 
         # ----------------------
         # z-score
         # ----------------------
@@ -227,18 +191,18 @@ def run_data_plots(
         y_in = y.copy()
         y_out = y.copy()
         y_out[in_range] = np.nan
-
+ 
         plt.figure(figsize=(12, 7))
         plt.plot(t, y_in, "-", color="black", linewidth=0.8)
         plt.scatter(t, y_out, color="darkorange", s=12)
-
-        plt.fill_between([min(t), max(t)], -3, +3, color=params["colors"]["base_blue"], alpha=0.25)
+ 
+        plt.fill_between([min(t), max(t)], -3, +3, color=params["colors"]["base_blue"], alpha=0.15)
         plt.hlines([-3, +3], min(t), max(t), color=params["colors"]["dark_blue"], linestyle="--")
-
+ 
         plt.text(
             0.5,
             0.125,
-            "Lower Control Limit",
+            "Limite warning",
             ha="center",
             va="center",
             transform=plt.gca().transAxes,
@@ -248,16 +212,16 @@ def run_data_plots(
         plt.text(
             0.5,
             0.875,
-            "Upper Control Limit",
+            "Limite warning",
             ha="center",
             va="center",
             transform=plt.gca().transAxes,
             color=params["colors"]["dark_blue"],
             fontsize=FONT_SIZE,
         )
-
+ 
         ax = plt.gca()
-        ax.set_xlabel(f"{year}_{month} [gg]", fontsize=FONT_SIZE)
+        ax.set_xlabel("Tempo [gg]", fontsize=FONT_SIZE)
         ax.set_ylabel("z-score", fontsize=FONT_SIZE)
         ax.tick_params(axis="both", labelrotation=0, labelsize=FONT_SIZE)
         ax.xaxis.set_major_locator(mdates.DayLocator(interval=5))
@@ -267,14 +231,13 @@ def run_data_plots(
         ax.set_title(pretty_name, fontsize=FONT_SIZE)
         ax.grid(True, which="major", axis="both", linestyle="--")
         plt.tight_layout()
-
+ 
         output_png = os.path.join(fig_out, f"z-score_{col}.png")
         plt.savefig(output_png, dpi=300)
         plt.close()
         print(f"\033[92m✔ salvato {output_png}\033[0m")
-
+ 
         n_warning = int(np.sum(np.abs(y) > 3))
-
         # ----------------------
         # livello di allarme
         # ----------------------
@@ -287,7 +250,7 @@ def run_data_plots(
         plt.fill_between(t, 0, 3.0, color=params["colors"]["dark_blue"], alpha=0.2)
 
         ax = plt.gca()
-        ax.set_xlabel(f"{year}_{month} [gg]", fontsize=FONT_SIZE)
+        ax.set_xlabel("Tempo [gg]", fontsize=FONT_SIZE)
         ax.set_ylabel("Livello di allerta", fontsize=FONT_SIZE)
         ax.set_title(f"Livello di allerta {pretty_name}", fontsize=FONT_SIZE)
         ax.tick_params(axis="x", labelrotation=0, labelsize=FONT_SIZE)
@@ -339,7 +302,7 @@ class EventsController:
 
         for i in range(len(self.z)):
             if alarm_val > 3:
-                print("ALLARMEEEEEEE")
+                print("ALLARME")
                 alarm_val = 0
             else:
                 p = 1 if self.warning(i) else 0
